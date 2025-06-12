@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Meeting Booking Database",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "meeting_booking",
+      "Username": "postgres",
+      "PassFile": "/tmp/pgpassfile",
+      "SSLMode": "prefer"
+    }
+  }
+}
