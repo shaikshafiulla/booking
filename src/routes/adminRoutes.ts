@@ -1,11 +1,26 @@
-// routes/adminRoutes.ts
 import express from 'express';
 import { Op } from 'sequelize';
 import { authenticateToken, requireAdmin } from '../middleware/auth';
-import { Booking } from '../models/Bookings';
 import { User } from '../models/User';
+import { Room } from '../models/Room';
+import { Booking } from '../models/Booking';
 
 const router = express.Router();
+
+// Get all users
+router.get('/users', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const users = await User.findAll({
+      attributes: ['id', 'name', 'email', 'role', 'createdAt', 'updatedAt'],
+      order: [['createdAt', 'DESC']],
+    });
+    
+    res.json(users);
+  } catch (error: any) {
+    console.error('Get users error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
 
 // Get all bookings
 router.get('/bookings', authenticateToken, requireAdmin, async (req, res) => {
@@ -28,16 +43,25 @@ router.get('/bookings', authenticateToken, requireAdmin, async (req, res) => {
     
     const bookings = await Booking.findAll({
       where: whereClause,
-      include: [{
-        model: User,
-        attributes: ['id', 'name', 'email'],
-      }],
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name', 'email'],
+        },
+        {
+          model: Room,
+          as: 'room',
+          attributes: ['roomId', 'name', 'capacity'],
+        }
+      ],
       order: [['startTime', 'ASC']],
     });
     
     res.json(bookings);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+  } catch (error:any) {
+    console.error('Admin bookings error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
@@ -59,18 +83,27 @@ router.patch('/bookings/:id/status', authenticateToken, requireAdmin, async (req
     });
     
     const updatedBooking = await Booking.findByPk(id, {
-      include: [{
-        model: User,
-        attributes: ['id', 'name', 'email'],
-      }],
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name', 'email'],
+        },
+        {
+          model: Room,
+          as: 'room',
+          attributes: ['roomId', 'name', 'capacity'],
+        }
+      ],
     });
     
     res.json({
       message: 'Booking status updated successfully',
       booking: updatedBooking,
     });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+  } catch (error:any) {
+    console.error('Update booking status error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
@@ -90,10 +123,36 @@ router.patch('/bookings/:id/reschedule', authenticateToken, requireAdmin, async 
     const existingBooking = await Booking.findOne({
       where: {
         id: { [Op.ne]: id },
-        startTime: new Date(startTime),
+        roomId: booking.roomId,
         status: {
           [Op.in]: ['approved', 'pending'],
         },
+        [Op.or]: [
+          {
+            startTime: {
+              [Op.between]: [new Date(startTime), new Date(endTime)]
+            }
+          },
+          {
+            endTime: {
+              [Op.between]: [new Date(startTime), new Date(endTime)]
+            }
+          },
+          {
+            [Op.and]: [
+              {
+                startTime: {
+                  [Op.lte]: new Date(startTime)
+                }
+              },
+              {
+                endTime: {
+                  [Op.gte]: new Date(endTime)
+                }
+              }
+            ]
+          }
+        ]
       },
     });
     
@@ -109,18 +168,27 @@ router.patch('/bookings/:id/reschedule', authenticateToken, requireAdmin, async 
     });
     
     const updatedBooking = await Booking.findByPk(id, {
-      include: [{
-        model: User,
-        attributes: ['id', 'name', 'email'],
-      }],
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name', 'email'],
+        },
+        {
+          model: Room,
+          as: 'room',
+          attributes: ['roomId', 'name', 'capacity'],
+        }
+      ],
     });
     
     res.json({
       message: 'Booking rescheduled successfully',
       booking: updatedBooking,
     });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+  } catch (error:any) {
+    console.error('Reschedule booking error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
@@ -151,9 +219,10 @@ router.get('/dashboard', authenticateToken, requireAdmin, async (req, res) => {
       todayBookings,
       totalUsers,
     });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+  } catch (error:any) {
+    console.error('Dashboard stats error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
-export default router;
+export default router;  
