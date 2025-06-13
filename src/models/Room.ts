@@ -2,7 +2,7 @@ import { DataTypes, Model } from 'sequelize';
 import { sequelize } from '../config/database';
 
 interface RoomAttributes {
-  id?: number;
+  roomId?: number;
   name: string;
   capacity: number;
   createdAt?: Date;
@@ -10,7 +10,7 @@ interface RoomAttributes {
 }
 
 class Room extends Model<RoomAttributes> implements RoomAttributes {
-  public id!: number;
+  public roomId!: number;
   public name!: string;
   public capacity!: number;
   public readonly createdAt!: Date;
@@ -18,7 +18,7 @@ class Room extends Model<RoomAttributes> implements RoomAttributes {
 }
 
 Room.init({
-  id: {
+  roomId: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
     primaryKey: true,
